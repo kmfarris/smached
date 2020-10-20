@@ -1,0 +1,12 @@
+MaxTtl = "3m00s"             # Hours H, Minutes M, Seconds S, Milliseconds u
+MemoryThreshold = "3072"    # In Mb
+EvictionPolicy = "3"        #
+
+DbType = "mongodb"          #mongo, postgres
+DbUsername = "admin"
+DbPass = "admin"
+DbHost = "localhost"
+#DbPort =
+AuthToken = "123456abc"
+
+
