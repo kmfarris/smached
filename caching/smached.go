@@ -6,14 +6,18 @@ kmfarris23@gmail.com
 package smached
 
 import (
+	"bufio"
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/spf13/viper"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/uuid"
 	"log"
+	"os"
 	"runtime"
 	"strconv"
+	"strings"
 	"time"
 	"unsafe"
 )
@@ -31,21 +35,27 @@ var config = Config{}
 var evictionPolicies = evictionPolicy{}
 
 func initEvictionPolicies() {
-	evictionPolicies.evictExpirationTime = 0
-	evictionPolicies.evictFILO = 1
-	evictionPolicies.evictRandom = 2
-	evictionPolicies.evictLruLeast = 3
+	evictionPolicies.EVICT_EXPIRATION_TIME = 0
+	evictionPolicies.EVICT_FILO = 1
+	evictionPolicies.EVICT_RANDOM = 2
+	evictionPolicies.EVICT_LRU_LEAST = 3
 }
 
 func loadConfig() {
-	viper.SetConfigName("config.toml") // name of config.toml file (without extension)
-	viper.SetConfigType("toml")        // REQUIRED if the config.toml file does not have the extension in the name
-	//viper.AddConfigPath("/etc/appname/")   // path to look for the config.toml file in
-	viper.AddConfigPath("$HOME/.appname") // call multiple times to add many search paths
-	viper.AddConfigPath(".")              // optionally look for config.toml in the working directory
-	err := viper.ReadInConfig()           // Find and read the config.toml file
-	if err != nil {                       // Handle errors reading the config.toml file
-		panic(fmt.Errorf("Fatal error config.toml file: %s \n", err))
+	viper.SetConfigName("config") // name of config.toml file (without extension)
+	viper.SetConfigType("toml")   // REQUIRED if the config.toml file does not have the extension in the name
+	viper.AddConfigPath(".")
+	viper.AddConfigPath("/etc/smached/")  // path to look for the config.toml file in
+	viper.AddConfigPath("$HOME/.smached") // call multiple times to add many search paths
+	// optionally look for config.toml.bak in the working directory
+	err := viper.ReadInConfig() // Find and read the config.toml.bak file
+	if err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			writeDefaultConfig()
+		} else {
+			// Handle errors reading the config.toml.bak file
+			panic(fmt.Errorf("Fatal error config.toml.bak file: %s \n", err))
+		}
 	}
 
 	//d := viper.Get("default")
@@ -55,6 +65,42 @@ func loadConfig() {
 		log.Fatal(err)
 	}
 
+}
+
+func writeDefaultConfig() {
+	defaultConfig := Config{}
+	defaultConfig.MaxTtl = "3m00s"
+	defaultConfig.EvictionPolicy = evictionPolicies.EVICT_LRU_LEAST
+	defaultConfig.MemoryThreshold = 2048
+	uuid, err := uuid.New()
+	defaultConfig.AuthToken = getHashedValue(fmt.Sprintf("%d", uuid))
+
+	fmt.Println("No Configuration file was found.  Would you like to create a default config? Y/n :")
+
+	reader := bufio.NewReader(os.Stdin)
+	char, _, err := reader.ReadRune()
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	switch strings.ToLower(string(char)) {
+	case "n":
+		return
+		panic(fmt.Errorf("Unable to start without config file.  Please add a config or use the default generated one to continue."))
+	default:
+		viper.SetDefault("MemoryThreshold", defaultConfig.MemoryThreshold)
+		viper.SetDefault("EvictionPolicy", defaultConfig.EvictionPolicy)
+		viper.SetDefault("MaxTtl", defaultConfig.MaxTtl)
+		viper.SetDefault("AuthToken", defaultConfig.AuthToken)
+
+		err = viper.SafeWriteConfig()
+		if err != nil {
+			panic(fmt.Errorf("There was an error creating a new config", err))
+		}
+	}
+
+	config = defaultConfig
 }
 
 func showLoadingInfo() {
@@ -215,13 +261,13 @@ func checkMemoryUsage(record *Record) {
 			log.Printf("Memory usage triggered cleaning: %d MB \n\r", bToMb(getMemoryUsage()))
 
 			switch config.EvictionPolicy {
-			case evictionPolicies.evictRandom:
+			case evictionPolicies.EVICT_RANDOM:
 				EvictRandom()
-			case evictionPolicies.evictLruLeast:
+			case evictionPolicies.EVICT_LRU_LEAST:
 				EvictByLRU()
-			case evictionPolicies.evictFILO:
+			case evictionPolicies.EVICT_FILO:
 				EvictByFILO()
-			case evictionPolicies.evictExpirationTime:
+			case evictionPolicies.EVICT_EXPIRATION_TIME:
 				EvictByExpirationTime()
 			default:
 				EvictByExpirationTime()

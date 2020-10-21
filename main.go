@@ -21,7 +21,7 @@ func handleRequest() {
 
 	router := httprouter.New()
 	//router.GET("/api/record/:key",BasicAuth(findRecord, smached.GetAuthToken()))
-	router.GET("/api/record/:key", findRecord)
+	router.GET("/api/record/:key", BasicAuth(findRecord, smached.GetAuthToken()))
 	router.GET("/api/record/", BasicAuth(findRecord, smached.GetAuthToken()))
 	router.GET("/api/stats", BasicAuth(homePage, smached.GetAuthToken()))
 	router.POST("/api/record", BasicAuth(addRecord, smached.GetAuthToken()))

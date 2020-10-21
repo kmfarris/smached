@@ -24,10 +24,10 @@ type Config struct {
 }
 
 type evictionPolicy struct {
-	evictExpirationTime int
-	evictLruLeast       int
-	evictRandom         int
-	evictFILO           int
+	EVICT_EXPIRATION_TIME int
+	EVICT_LRU_LEAST       int
+	EVICT_RANDOM          int
+	EVICT_FILO            int
 }
 
 type Record struct {
