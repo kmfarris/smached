@@ -7,7 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	smached "smached/caching"
+	smached "smached/smached/caching"
 )
 
 func homePage(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -23,7 +23,7 @@ func handleRequest() {
 	//router.GET("/api/record/:key",BasicAuth(findRecord, smached.GetAuthToken()))
 	router.GET("/api/record/:key", BasicAuth(findRecord, smached.GetAuthToken()))
 	router.GET("/api/record/", BasicAuth(findRecord, smached.GetAuthToken()))
-	router.GET("/api/stats", BasicAuth(homePage, smached.GetAuthToken()))
+	router.GET("/api/stats", homePage)
 	router.POST("/api/record", BasicAuth(addRecord, smached.GetAuthToken()))
 	fileServer := http.FileServer(http.Dir("./web"))
 	http.Handle("/", fileServer)
